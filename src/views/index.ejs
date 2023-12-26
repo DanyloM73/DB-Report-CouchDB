@@ -1,11 +1,11 @@
 <h1>ADD NEW TODO</h1>
 <form method="post" action="/todo/add">
     Task:
-    <input type="text" name="business" placeholder="Type your task">
+    <input type="text" name="business" placeholder="Type your task" required>
     <br>
     <br>
     Deadline:
-    <input type="date" name="date">
+    <input type="date" name="date" min="<%= new Date().toISOString().split('T')[0] %>" required>
     <br>
     <br>
     <input type="submit" value="ADD">
