@@ -38,12 +38,180 @@ CouchDB поставляється з широким набором функці
 
 ## Робота з CouchDB на реальному прикладі
 
-Отже, тепер настав час перейти від теоретичних відомостей до використання цієї СУБД при створенні цілком конкретного веб-застосунку
+Отже, тепер настав час перейти від теоретичних відомостей до використання цієї СУБД при створенні цілком конкретного веб-застосунку. Для прикладу я вирішив продемострувати створення списку справ **(TODO list)** з можливістю додавати та видаляти записи.
 
-- Для початку потрібно встановити на свій пристрій службу **Apache CouchDB**. Зробити це можна через офіційний сайт: https://couchdb.apache.org
+Для початку потрібно встановити на свій пристрій службу **Apache CouchDB**. Зробити це можна через офіційний сайт: https://couchdb.apache.org
 
-- Після заврешення інсталяції варто переконатися чи працює встановлена служба:
+Після завершення інсталяції варто переконатися чи працює встановлена служба:
 
 <p align="center">
     <img src="./img/service.png">
 </p>
+
+Тепер можемо відкрити налаштування нашої СУБД, для цього в браузері вводимо наступну адресу: http://localhost:5984/_utils і бачимо приблизно таке меню:
+
+<p align="center">
+    <img src="./img/localhost5984.png">
+</p>
+
+Тут я завчасно заготував базу даних, а в ній один документ:
+
+<p align="center">
+    <img src="./img/document.png">
+</p>
+
+А також View для отримання всіх документів за полем _id:
+
+<p align="center">
+    <img src="./img/view.png">
+</p>
+
+Отже, з базою даних та її початковими налаштуваннями розібралися, тепер перейдемо до реалізації нашого веб-застосунку. Для його створення я буду використовувати наступні інструменти та технології:
+
+- Фреймворк **Express.js** для створення серверу
+
+- Програмне забезпечення **body-parser** для обробки запитів
+
+- Пакет **node-couchdb** для роботи з базою даних
+
+- Мова шаблонів **EJS (Embedded JavaScript templates)** для генерації HTML розмітки за допомогою JavaScript
+
+Тепер перейдемо до коду. Я створив 3 файли з розширенням .js та один з роширенням .ejs. Давайте розглянемо по порядку який код я вписав у кожен з файлів:
+
+- `app.js`
+
+```js
+'use strict';
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
+const routes = require('./routes');
+
+const app = express();
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: false}));
+
+app.use('/', routes);
+
+app.listen(3000, () => console.log('Server started on port 3000'));
+```
+
+У цьому файлі я створюю новий додаток Express, налаштовую його для використання EJS в якості рушія представлень, також налаштовую його для використання body-parser, задля обробки JSON об'єктів у запитах, ще я тут підключаю шляхи (routes), які розписав у іншому файлі, і, нарешті, запускаю сервер на порту 3000
+
+- `db.js`
+
+```js
+'use strict';
+
+const nodeCouchDB = require('node-couchdb');
+
+require('dotenv').config();
+
+const couch = new nodeCouchDB({
+    auth: {
+        user: process.env.DB_USER,
+        pass: process.env.DB_PASS
+    }
+});
+
+module.exports = couch;
+```
+
+У цьому файлі я створюю новий езкемпляр nodeCouchDB, в якому передаю об'єкт з обліковими даними для аутентифікації в Apache CouchDB, цей екземпляр я експортую для подальшого використання. Облікові дані я беру з файлу .env для забезпечення кращого захисту чутливої інформації
+
+- `routes.js`
+
+```js
+'use strict';
+
+const express = require('express');
+const router = express.Router();
+const couch = require('./db.js');
+
+require('dotenv').config();
+
+const dbName = process.env.DB_NAME;
+const viewUrl = process.env.VIEW_URL
+
+router.get('/', (req, res) => {
+  couch.get(dbName, viewUrl).then(
+      (data, headers, status) => res.render('index', { todos: data.data.rows }),
+      err => res.send(err)
+)
+});
+
+router.post('/todo/add', (req, res) => {
+    const business = req.body.business;
+    const date = req.body.date.split('-');
+
+    couch.uniqid().then(ids => {
+        const id = ids[0];
+
+        couch.insert(dbName, {
+            _id: id,
+            business: business,
+            deadline: {
+                year: date[0],
+                month: date[1],
+                day_of_month: date[2]
+            }
+        }).then(
+            (data, headers, status) => res.redirect('/'),
+            err => res.send(err)
+        );
+    });
+});
+
+router.post('/todo/delete/:id', (req, res) => {
+    const id = req.params.id;
+    const rev = req.body.rev;
+
+    couch.del(dbName, id, rev).then(
+        (data, headers, status) => res.redirect('/'),
+        err => res.send(err)
+    );
+});
+
+module.exports = router;
+```
+
+У цьому файли я налаштовую шляхи (routes) для мого застосунку, для цього я використовую імпортований з `db.js` екземпляр, назву бази даних та посилання на view, що взяті з файлу .env. Всього у мене прописані один метод GET для отримання всіх документів та два методи POST для додавання і видалення документу
+
+- `index.ejs`
+
+```ejs
+<h1>ADD NEW TODO</h1>
+<form method="post" action="/todo/add">
+    Task:
+    <input type="text" name="business" placeholder="Type your task">
+    <br>
+    <br>
+    Deadline:
+    <input type="date" name="date">
+    <br>
+    <br>
+    <input type="submit" value="ADD">
+</form>
+
+<h1>TODO LIST</h1>
+<ul>
+<% todos.forEach(todo => { %>
+    <li>
+        <h3><%= todo.value.business %></h3> 
+        Deadline: <%= todo.value.deadline.day_of_month %>.<%= todo.value.deadline.month %>.<%= todo.value.deadline.year %>
+        <form method="post" action="/todo/delete/<%= todo.key %>">
+            <input type="hidden" value="<%= todo.value.rev %>" name="rev">
+            <br>
+            <input type="submit" value="DELETE">
+        </form>
+    </li>
+<% }); %>
+</ul>
+```
+
+У цьому файлі я розписав шаблон EJS. У верхній частині шаблону є форма для додавання нового завдання. Користувач може ввести назву завдання та термін виконання. Після надсилання форми дані відправляються на сервер за допомогою запиту POST на /todo/add. Потім іде список всіх завдань. Для кожного завдання відображається назва та термін виконання. Кожне завдання також має форму її видалення. При надсиланні цієї форми на сервер відправляється POST-запит на /todo/delete/:id, де :id - це ідентифікатор завдання. Цей шаблон використовує вбудований JavaScript для відображення списку завдань. За допомогою <% %> можна вставити будь-який JavaScript код, а за допомогою <%= %> можна вставити результат виконання JavaScript коду. В цілому, цей шаблон можна назвати простим інтерфейсом для управління списком завдань.
