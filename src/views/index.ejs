@@ -1,0 +1,27 @@
+<h1>ADD NEW TODO</h1>
+<form method="post" action="/todo/add">
+    Task:
+    <input type="text" name="business" placeholder="Type your task">
+    <br>
+    <br>
+    Deadline:
+    <input type="date" name="date">
+    <br>
+    <br>
+    <input type="submit" value="ADD">
+</form>
+
+<h1>TODO LIST</h1>
+<ul>
+<% todos.forEach(todo => { %>
+    <li>
+        <h3><%= todo.value.business %></h3> 
+        Deadline: <%= todo.value.deadline.day_of_month %>.<%= todo.value.deadline.month %>.<%= todo.value.deadline.year %>
+        <form method="post" action="/todo/delete/<%= todo.key %>">
+            <input type="hidden" value="<%= todo.value.rev %>" name="rev">
+            <br>
+            <input type="submit" value="DELETE">
+        </form>
+    </li>
+<% }); %>
+</ul>
