@@ -267,7 +267,7 @@ module.exports = router;
 #
 **Виконав:** 
 
-*студент 2-го курсу, групи IM-21*<span padding-right:5em></span> **[Маланін Данило] [https://t.me/danyamalanin]**
+*студент 2-го курсу, групи IM-21*<span padding-right:5em></span> **Данило МАЛАНІН [Telegram](https://t.me/danyamalanin)**
 
 
 **Керівник**
