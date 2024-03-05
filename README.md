@@ -283,3 +283,7 @@ module.exports = router;
 [Кафедра обчислювальної техніки](https://comsys.kpi.ua/)
 
 Київ
+
+`**test**` -> `<b>test</b>`
+`_test_` -> `<i>test</i>`
+``test`` -> `<tt>test</tt>`
