@@ -283,11 +283,3 @@ module.exports = router;
 [Кафедра обчислювальної техніки](https://comsys.kpi.ua/)
 
 Київ
-
-```
-` ` `
-Some
-_Preformatted_
-Text
-` ` `
-```
